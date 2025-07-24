@@ -25,12 +25,6 @@ jobs:
           message: Automerging dev branch into main
           github_token: ${{ github.token }}
           
-      - name: docker ttl
-        run: |
-          IMAGE_NAME=$(uuidgen)
-          docker build -t ttl.sh/${IMAGE_NAME}:3h .
-          docker push ttl.sh/${IMAGE_NAME}:3h
-          
   deploy-to-aws:
     name: Deploy Application to AWS
     runs-on: ubuntu-latest
@@ -43,7 +37,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: main  # Deploy from main branch after merge
+          ref: main
           
       - name: Determine environment and AMI selection
         id: env-config
