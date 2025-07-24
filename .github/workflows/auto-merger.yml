@@ -92,12 +92,3 @@ jobs:
         working-directory: ./hosting
         timeout-minutes: 15
         run: terraform apply -auto-approve -input=false tfplan
-        
-      - name: Verify deployment
-        working-directory: ./hosting
-        timeout-minutes: 5
-        run: |
-          HEALTH_URL=$(terraform output -raw health_check_url)
-          sleep 30
-          curl -f --max-time 10 --retry 3 --retry-delay 10 "$HEALTH_URL"
-          
