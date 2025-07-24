@@ -2,17 +2,8 @@
 locals {
   app_name                  = "flask-app"
   app_port                  = 5050
-  key_pair_name            = null  # Set to your key pair name if needed
-  allowed_ssh_cidr_blocks  = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]  # Private networks only
-  allowed_http_cidr_blocks = ["0.0.0.0/0"]  # Public access to app
-  enable_detailed_monitoring = false
-  root_volume_size         = 20
-  create_elastic_ip        = true
-  
-  instance_type = var.environment == "prod" ? "t3.medium" : (var.environment == "staging" ? "t3.small" : "t3.micro")
 }
 
-# Get the specified AMI
 data "aws_ami" "selected_ami" {
   most_recent = true
   owners      = [var.custom_ami_owner]
@@ -33,15 +24,6 @@ resource "aws_vpc" "app-vpc" {
 
   tags = {
     Name = "app-vpc"
-  }
-}
-
-
-# Get default subnet
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
   }
 }
 
@@ -75,9 +57,6 @@ resource "aws_route_table_association" "private-subnet" {
   route_table_id = aws_route_table.private-route.id
 }
 
-
-
-# Create security group for the application
 resource "aws_security_group" "app_sg" {
   name = "app-sg-${random_string.random_name.result}"
   description = "Security group for application"
@@ -88,7 +67,7 @@ resource "aws_security_group" "app_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Change to local.allowed_ssh_cidr_blocks for restricted access
+    cidr_blocks = ["0.0.0.0/0"]
     description = "SSH access"
   }
   ingress {
@@ -160,7 +139,7 @@ resource "local_file" "aws_key" {
 
 resource "aws_instance" "application_server" {
   depends_on = [
-    aws_security_group.logging-SG
+    aws_security_group.app_sg
   ]
   ami                         = "ami-0528a5175983e7f28"
   instance_type               = "t2.micro"
