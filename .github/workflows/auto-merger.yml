@@ -9,7 +9,8 @@ on:
 
 permissions:
   contents: write
-
+  id-token: write
+  
 jobs:
   merge-dev-to-main:
     name: Auto-merge dev → main
