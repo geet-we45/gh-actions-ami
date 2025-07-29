@@ -45,6 +45,7 @@ jobs:
         run: |
           echo "environment=prod" >> $GITHUB_OUTPUT
           echo "ami_owner=${{ secrets.PROD_AMI_OWNER }}" >> $GITHUB_OUTPUT
+          echo "prod_ami_owner=449630918120" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -95,7 +96,6 @@ jobs:
           elif [[ "$BRANCH" == "main" ]]; then
             echo "environment=prod" >> $GITHUB_OUTPUT
             echo "ami_owner=${{ secrets.PROD_AMI_OWNER }}" >> $GITHUB_OUTPUT
-            echo "prod_ami_owner=449630918120" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure AWS credentials (OIDC)
