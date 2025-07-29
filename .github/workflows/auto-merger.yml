@@ -86,7 +86,6 @@ jobs:
         run: |
           terraform plan -input=false \
             -var="environment=${{ steps.env-config.outputs.environment }}" \
-            -var="custom_ami_name=${{ steps.env-config.outputs.ami_name }}" \
             -var="custom_ami_owner=${{ steps.env-config.outputs.ami_owner }}" \
             -out=tfplan
 

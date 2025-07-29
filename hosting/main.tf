@@ -10,7 +10,7 @@ data "aws_ami" "selected_ami" {
 
   filter {
     name   = "name"
-    values = [var.custom_ami_name]
+    values = ["financial-services-ami-*"]
   }
 
   filter {
@@ -141,7 +141,7 @@ resource "aws_instance" "application_server" {
   depends_on = [
     aws_security_group.app_sg
   ]
-  ami                         = "ami-0528a5175983e7f28"
+  ami                         = data.aws_ami.selected_ami.id
   instance_type               = "t2.micro"
   iam_instance_profile        = aws_iam_instance_profile.app_profile.name
   key_name                    = aws_key_pair.ssh.key_name
