@@ -12,7 +12,7 @@ permissions:
   id-token: write
 
 jobs:
-  merge-and-deploy-from-dev:
+  merge-dev-to-main:
     if: github.ref_name == 'dev'
     runs-on: ubuntu-latest
     steps:
@@ -28,9 +28,10 @@ jobs:
           message: Auto-merge dev to main
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy-from-main-if-dev:
-    needs: merge-and-deploy-from-dev
+  deploy-main-from-dev:
+    name: Deploy Main after Dev Merge
     if: github.ref_name == 'dev'
+    needs: merge-dev-to-main
     runs-on: ubuntu-latest
     env:
       TF_IN_AUTOMATION: true
@@ -40,12 +41,12 @@ jobs:
         with:
           ref: main
 
-      - name: Set environment and AMI values
+      - name: Set environment and AMI for main
         id: env-config
         run: |
           echo "environment=prod" >> $GITHUB_OUTPUT
-          echo "ami_owner=${{ secrets.PROD_AMI_OWNER }}" >> $GITHUB_OUTPUT
-          echo "prod_ami_owner=449630918120" >> $GITHUB_OUTPUT
+          echo "ami_name=${{ secrets.PROD_AMI_NAME }}" >> $GITHUB_OUTPUT
+          echo "ami_owner=449630918120" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -68,35 +69,30 @@ jobs:
         run: |
           terraform plan -input=false \
             -var="environment=${{ steps.env-config.outputs.environment }}" \
-            -var="custom_ami_owner=${{ steps.env-config.outputs.prod_ami_owner }}" \
+            -var="custom_ami_owner=${{ steps.env-config.outputs.ami_owner }}" \
             -out=tfplan
 
       - name: Terraform Apply
         working-directory: ./hosting
         run: terraform apply -auto-approve -input=false tfplan
 
-  deploy-normal:
-    if: github.ref_name == 'staging' || github.ref_name == 'main'
+  deploy-staging:
+    if: github.ref_name == 'staging'
     runs-on: ubuntu-latest
     env:
       TF_IN_AUTOMATION: true
     steps:
-      - name: Checkout
+      - name: Checkout staging branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: staging
 
-      - name: Set environment and AMI values
+      - name: Set environment and AMI for staging
         id: env-config
         run: |
-          BRANCH="${{ github.ref_name }}"
-          if [[ "$BRANCH" == "staging" ]]; then
-            echo "environment=staging" >> $GITHUB_OUTPUT
-            echo "ami_owner=${{ secrets.STAGING_AMI_OWNER }}" >> $GITHUB_OUTPUT
-          elif [[ "$BRANCH" == "main" ]]; then
-            echo "environment=prod" >> $GITHUB_OUTPUT
-            echo "ami_owner=${{ secrets.PROD_AMI_OWNER }}" >> $GITHUB_OUTPUT
-          fi
+          echo "environment=staging" >> $GITHUB_OUTPUT
+          echo "ami_name=${{ secrets.STAGING_AMI_NAME }}" >> $GITHUB_OUTPUT
+          echo "ami_owner=${{ secrets.STAGING_AMI_OWNER }}" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -119,7 +115,53 @@ jobs:
         run: |
           terraform plan -input=false \
             -var="environment=${{ steps.env-config.outputs.environment }}" \
-            -var="ami_owner=${{ steps.env-config.outputs.ami_owner }}" \
+            -var="custom_ami_owner=${{ steps.env-config.outputs.ami_owner }}" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: ./hosting
+        run: terraform apply -auto-approve -input=false tfplan
+
+  deploy-main-direct:
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    env:
+      TF_IN_AUTOMATION: true
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set environment and AMI for main
+        id: env-config
+        run: |
+          echo "environment=prod" >> $GITHUB_OUTPUT
+          echo "ami_name=${{ secrets.PROD_AMI_NAME }}" >> $GITHUB_OUTPUT
+          echo "ami_owner=${{ secrets.PROD_AMI_OWNER }}" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/auto-deploy-GitHubActionsRole
+          role-session-name: github-actions
+          aws-region: ${{ secrets.AWS_REGION || 'us-west-2' }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.0"
+
+      - name: Terraform Init
+        working-directory: ./hosting
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        working-directory: ./hosting
+        run: |
+          terraform plan -input=false \
+            -var="environment=${{ steps.env-config.outputs.environment }}" \
+            -var="custom_ami_owner=${{ steps.env-config.outputs.ami_owner }}" \
             -out=tfplan
 
       - name: Terraform Apply
