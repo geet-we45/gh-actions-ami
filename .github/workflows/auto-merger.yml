@@ -45,7 +45,7 @@ jobs:
         id: env-config
         run: |
           echo "environment=prod" >> $GITHUB_OUTPUT
-          echo "ami_name=${{ secrets.PROD_AMI_NAME }}" >> $GITHUB_OUTPUT
+          cho "ami_owner=${{ secrets.PROD_AMI_OWNER }}" >> $GITHUB_OUTPUT
           echo "ami_owner=449630918120" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials (OIDC)
@@ -167,3 +167,4 @@ jobs:
       - name: Terraform Apply
         working-directory: ./hosting
         run: terraform apply -auto-approve -input=false tfplan
+
